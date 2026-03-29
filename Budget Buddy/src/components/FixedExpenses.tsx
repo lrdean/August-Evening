@@ -86,48 +86,71 @@ const FixedExpenses: React.FC = () => {
       setAccountBalances({});
     }
 
-    const updateAccountBalancesFromIncome = () => {
+    const updateAccountBalancesFromTransactions = () => {
       try {
+        // Get all income transactions
         const incomeTransactions = JSON.parse(
           localStorage.getItem("bb_tx_income") || "[]"
         );
-        console.log("Income transactions found:", incomeTransactions);
 
-        // Only update if we have income transactions and no existing balances
-        if (incomeTransactions.length > 0) {
-          setAccountBalances((prevBalances) => {
-            // If we already have balances, don't add income again
-            if (Object.keys(prevBalances).length > 0) {
-              console.log(
-                "Account balances already exist, skipping income addition"
-              );
-              return prevBalances;
-            }
+        // Get all expense transactions (fixed and discretionary)
+        const fixedExpenses = JSON.parse(
+          localStorage.getItem("bb_tx_fixed") || "[]"
+        );
+        const discretionaryExpenses = JSON.parse(
+          localStorage.getItem("bb_tx_discretionary") || "[]"
+        );
+        const allExpenses = [...fixedExpenses, ...discretionaryExpenses];
 
-            const newBalances = { ...prevBalances };
+        console.log("Recalculating account balances from all transactions");
+        console.log("Income transactions:", incomeTransactions);
+        console.log("Expense transactions:", allExpenses);
 
-            // Add income to the specified accounts (only once)
-            incomeTransactions.forEach((income: any) => {
-              if (income.account && income.amount) {
-                const account = income.account;
-                const amount = Number(income.amount) || 0;
-                console.log(`Adding ${amount} to ${account} account`);
-                newBalances[account] = (newBalances[account] || 0) + amount;
-              }
-            });
+        // Get current balances to preserve goal accounts and other special accounts
+        const currentBalances = { ...accountBalances };
 
-            console.log("Updated account balances:", newBalances);
-            return newBalances;
-          });
-        }
+        // Calculate net balance for each account from transactions
+        const newBalances: Record<string, number> = {};
+
+        // Add all income
+        incomeTransactions.forEach((income: any) => {
+          if (income.account && income.amount) {
+            const account = income.account;
+            const amount = Number(income.amount) || 0;
+            newBalances[account] = (newBalances[account] || 0) + amount;
+          }
+        });
+
+        // Subtract all expenses
+        allExpenses.forEach((expense: any) => {
+          if (expense.account && expense.amount) {
+            const account = expense.account;
+            const amount = Number(expense.amount) || 0;
+            newBalances[account] = (newBalances[account] || 0) - amount;
+          }
+        });
+
+        // Preserve goal accounts and other special accounts that don't come from transactions
+        Object.keys(currentBalances).forEach(account => {
+          if (!newBalances.hasOwnProperty(account)) {
+            // This account is not affected by income/expense transactions (e.g., goal accounts)
+            newBalances[account] = currentBalances[account];
+          }
+        });
+
+        console.log("Updated account balances:", newBalances);
+        setAccountBalances(newBalances);
       } catch (error) {
-        console.error("Error updating account balances from income:", error);
+        console.error("Error updating account balances from transactions:", error);
       }
     };
 
-    // Update balances when income changes
-    const onIncome = () => updateAccountBalancesFromIncome();
+    // Update balances when income or expenses change
+    const onIncome = () => updateAccountBalancesFromTransactions();
+    const onExpenses = () => updateAccountBalancesFromTransactions();
+
     window.addEventListener("bb:income-updated", onIncome);
+    window.addEventListener("bb:transactions-updated", onExpenses);
 
     // Listen for account balance updates from other components
     const onAccountBalancesUpdated = (event: CustomEvent) => {
@@ -143,10 +166,11 @@ const FixedExpenses: React.FC = () => {
     );
 
     // Initial update
-    updateAccountBalancesFromIncome();
+    updateAccountBalancesFromTransactions();
 
     return () => {
       window.removeEventListener("bb:income-updated", onIncome);
+      window.removeEventListener("bb:transactions-updated", onExpenses);
       window.removeEventListener(
         "bb:account-balances-updated",
         onAccountBalancesUpdated as EventListener

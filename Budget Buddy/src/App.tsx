@@ -29,8 +29,11 @@ function Dashboard() {
   useEffect(() => {
     const onUpdated = () => setTxVersion((v) => v + 1);
     window.addEventListener("bb:transactions-updated", onUpdated);
-    return () =>
+    window.addEventListener("bb:income-updated", onUpdated);
+    return () => {
       window.removeEventListener("bb:transactions-updated", onUpdated);
+      window.removeEventListener("bb:income-updated", onUpdated);
+    };
   }, []);
 
   function loadTransactions(): Transaction[] {

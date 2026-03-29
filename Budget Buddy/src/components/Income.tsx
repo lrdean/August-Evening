@@ -106,6 +106,9 @@ const Income: React.FC = () => {
     try {
       window.dispatchEvent(new Event("bb:income-updated"));
     } catch {}
+    try {
+      window.dispatchEvent(new Event("bb:transactions-updated"));
+    } catch {}
   }, [rows]);
 
   const payeeSuggestions = useMemo(() => {

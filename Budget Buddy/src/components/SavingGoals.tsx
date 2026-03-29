@@ -1156,9 +1156,38 @@ const SavingGoals = () => {
                     style={{
                       display: "flex",
                       flexDirection: "column",
-                      gap: 4,
+                      gap: 8,
                     }}
                   >
+                    <div>
+                      <strong>Goals</strong>
+                    </div>
+                    {goals.map((goal, idx) => {
+                      const progress =
+                        goal.target > 0
+                          ? Math.min((goal.current / goal.target) * 100, 100)
+                          : 0;
+                      return (
+                        <div
+                          key={`summary-goal-${idx}`}
+                          style={{
+                            display: "flex",
+                            justifyContent: "space-between",
+                            padding: "6px 8px",
+                            borderRadius: "5px",
+                            background: "#ffffff",
+                            border: "1px solid #d1fae5",
+                          }}
+                        >
+                          <div style={{ fontWeight: 600, color: "#0c4a6e" }}>
+                            {goal.name.trim() ? goal.name : `Goal ${idx + 1}`}
+                          </div>
+                          <div style={{ fontSize: "0.9rem", color: "#059669" }}>
+                            {`$${goal.current.toFixed(2)} / $${goal.target.toFixed(2)} (${progress.toFixed(1)}%)`}
+                          </div>
+                        </div>
+                      );
+                    })}
                     <div>
                       <strong>Total Goals Progress:</strong>
                       <span style={{ marginLeft: 8, color: "#059669" }}>
@@ -1304,7 +1333,7 @@ const SavingGoals = () => {
                         }}
                       >
                         <div style={{ fontWeight: "600", color: "#0277bd" }}>
-                          {goal.name || `Goal ${idx + 1}`}
+                          Goal: {goal.name || `Goal ${idx + 1}`}
                         </div>
                         <div style={{ color: "#01579b", fontSize: "10px" }}>
                           Account: {goalAccountName}
